@@ -54,7 +54,8 @@ private:
     std::string img_width;
     std::string img_height;
     std::string max_col_val;
-    std::vector<pixel> pixels;
+    std::vector<pixel> original_pixels;
+    std::vector<pixel> greyscale_pixels;
     int tot_bytes = 0;
 
 public:
@@ -108,7 +109,7 @@ public:
                         tmp_pixel.set_blue_value(bv);
                     }
 
-                    pixels.push_back(tmp_pixel);
+                    original_pixels.push_back(tmp_pixel);
                 }
             }
         }
@@ -163,7 +164,7 @@ public:
     // getter for the number of pixels
     int get_num_pixels () const {
         if (img_ptr != nullptr) {
-            return pixels.size();
+            return original_pixels.size();
         } else {
             return -1;
         }
@@ -172,9 +173,9 @@ public:
     // printing all pixel values
     void print_pixel_values() const {
         if (img_ptr != nullptr) {
-            for (int i = 0; i < pixels.size(); i++) {
-                std::cout << "pixel: " << i << " r: " << pixels.at(i).get_red_value()
-                    << ", g: " << pixels.at(i).get_green_value() << ", b: " << pixels.at(i).get_blue_value() << std::endl;
+            for (int i = 0; i < original_pixels.size(); i++) {
+                std::cout << "pixel: " << i << " r: " << original_pixels.at(i).get_red_value()
+                    << ", g: " << original_pixels.at(i).get_green_value() << ", b: " << original_pixels.at(i).get_blue_value() << std::endl;
             }
         } else {
             return;
@@ -199,7 +200,30 @@ public:
     void gen_gs_img (std::string filename) {
         std::ofstream newimg{filename}; // creating new image file
 
+        // appending the initial stuff for the ppm file
+        newimg << magic_number << "\n" << get_width()
+            << " " << get_height() << "\n" << get_max_color() << "\n";
 
+        for (int i = 0; i < get_num_pixels(); i++) {
+            // generating the greyscale value for each pixel
+            int avg_pixel_value = original_pixels.at(i).get_red_value();
+            avg_pixel_value += original_pixels.at(i).get_green_value();
+            avg_pixel_value += original_pixels.at(i).get_blue_value();
+            avg_pixel_value /= 3;
+            
+            // writing to greyscale image
+            newimg << static_cast<char>(avg_pixel_value);
+            newimg << static_cast<char>(avg_pixel_value);
+            newimg << static_cast<char>(avg_pixel_value);
+
+            // pushing pixel into greyscale vector
+            pixel tmp_pixel;
+            tmp_pixel.set_red_value(avg_pixel_value);
+            tmp_pixel.set_green_value(avg_pixel_value);
+            tmp_pixel.set_blue_value(avg_pixel_value);
+
+            greyscale_pixels.push_back(tmp_pixel);
+        }
     }
     
     // implement a constructor that defines the mode as writing
