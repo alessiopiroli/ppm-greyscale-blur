@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <tuple>
+#include <fstream>
 
 struct pixel {
 private:
@@ -46,8 +47,6 @@ public:
 
 class ImageHandler {
 private:
-    int n_row_pixel = 0;
-    int n_col_pixel = 0;
     std::FILE* img_ptr = nullptr;
     std::string img_path;
     std::string handle_mode{"reading"};
@@ -93,15 +92,30 @@ public:
                 tot_bytes = std::stoi(img_width) * std::stoi(img_height) * 3;
 
                 // reading the remaining bytes
-                for (int i = 0; i < tot_bytes; i++) {
-                    
+                for (int i = 0; i < tot_bytes; i+=3) {
+                    pixel tmp_pixel;
+                    int rv = static_cast<int>(fgetc(img_ptr));
+                    int gv = static_cast<int>(fgetc(img_ptr));
+                    int bv = static_cast<int>(fgetc(img_ptr));
+
+                    // checking that we have read correctly the pixel rgb values
+                    if ((rv == EOF) || (gv == EOF) || (bv == EOF)) {
+                        return;
+                    } else {
+                        // putting values inside temporary pixel
+                        tmp_pixel.set_red_value(rv);
+                        tmp_pixel.set_green_value(gv);
+                        tmp_pixel.set_blue_value(bv);
+                    }
+
+                    pixels.push_back(tmp_pixel);
                 }
             }
         }
     }
 
     // printing the content of the ppm file
-    void print_content() {
+    void print_raw_content() {
         if (img_ptr != nullptr) {
             // if we have access to the image we can print
             int return_value;
@@ -146,5 +160,47 @@ public:
         return tot_bytes;
     }
 
+    // getter for the number of pixels
+    int get_num_pixels () const {
+        if (img_ptr != nullptr) {
+            return pixels.size();
+        } else {
+            return -1;
+        }
+    }
+
+    // printing all pixel values
+    void print_pixel_values() const {
+        if (img_ptr != nullptr) {
+            for (int i = 0; i < pixels.size(); i++) {
+                std::cout << "pixel: " << i << " r: " << pixels.at(i).get_red_value()
+                    << ", g: " << pixels.at(i).get_green_value() << ", b: " << pixels.at(i).get_blue_value() << std::endl;
+            }
+        } else {
+            return;
+        }
+    }
+
+    // getter for image info
+    void print_img_data() const {
+        if (img_ptr != nullptr) {
+            std::cout << "Image was opened correctly" << std::endl;
+            std::cout << "Magic number: " << get_magic_number() << std::endl;
+            std::cout << "Width: " << get_width() << std::endl;
+            std::cout << "Height: " << get_height() << std::endl;
+            std::cout << "Max color value: " << get_max_color() << std::endl;
+            std::cout << "Number of bytes: " << get_num_bytes() << std::endl;
+            std::cout << "Number of pixels: " << get_num_pixels() << std::endl;
+        } else {
+            std::cout << "Image was not opened correctly: can't display info" << std::endl;
+        }
+    }
+
+    void gen_gs_img (std::string filename) {
+        std::ofstream newimg{filename}; // creating new image file
+
+
+    }
+    
     // implement a constructor that defines the mode as writing
 };
