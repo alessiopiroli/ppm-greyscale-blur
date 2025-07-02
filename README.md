@@ -1,5 +1,5 @@
 # PPM Images Processor
-A simple C++ ppm processing pipeling that applies blur and greyscale filters to input images.
+A simple C++ ppm processing pipeline that applies blur and greyscale filters to input images.
 
 ## Building
 ```bash
