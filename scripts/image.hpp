@@ -6,14 +6,28 @@
 #include <iostream>
 #include <tuple>
 #include <fstream>
+// #include <omp.h>
+
+enum class img_type {
+    original, 
+    greyscale, 
+    blurred
+};
 
 struct pixel {
 private:
-    int red_value;
-    int green_value;
-    int blue_value;
+    int red_value = 0;
+    int green_value = 0;
+    int blue_value = 0;
 
 public:
+    // default constructor for a pixel
+    pixel() {}
+
+    // constructor with rgb values
+    pixel(const int r_value_, const int g_value, const int b_value) : 
+        red_value{r_value_}, green_value{g_value}, blue_value{b_value} {}
+
     // red value getter
     int get_red_value() const {
         return red_value;
@@ -51,16 +65,18 @@ private:
     std::string img_path;
     std::string handle_mode{"reading"};
     std::string magic_number;
+    std::string random_info;
     std::string img_width;
     std::string img_height;
     std::string max_col_val;
     std::vector<pixel> original_pixels;
     std::vector<pixel> greyscale_pixels;
+    std::vector<pixel> blurred_pixels;
     int tot_bytes = 0;
 
 public:
     // image handler constructor
-    // default handler is in reading mode
+    // default handler is in byte reading mode
     ImageHandler(std::string& img_path_) : img_path{img_path_} {
         if (handle_mode == "reading") {
             img_ptr = std::fopen(img_path_.c_str(), "rb");
@@ -74,19 +90,46 @@ public:
                     magic_number += return_value;  
                 }
                 
-                // getting the width
-                while ((return_value = fgetc(img_ptr)) != ' ') {
-                    img_width += return_value;   
-                }
-                
-                // getting the height
-                while ((return_value = fgetc(img_ptr)) != '\n') {
-                    img_height += return_value;
-                }
+                // stuff to do if there's some random info
+                if ((return_value = fgetc(img_ptr)) != '\n') {
+                    if (return_value == '#') {
+                        random_info += return_value;
 
-                // getting max colour value
-                while ((return_value = fgetc(img_ptr)) != '\n') {
-                    max_col_val += return_value;
+                        // getting the  rest of the random info
+                        while ((return_value = fgetc(img_ptr)) != '\n') {
+                            random_info += return_value;
+                        }
+
+                        // getting the width
+                        while ((return_value = fgetc(img_ptr)) != ' ') {
+                            img_width += return_value;   
+                        }
+
+                        // getting the height
+                        while ((return_value = fgetc(img_ptr)) != '\n') {
+                            img_height += return_value;
+                        }
+
+                        // getting max colour value
+                        while ((return_value = fgetc(img_ptr)) != '\n') {
+                            max_col_val += return_value;
+                        }
+                    }
+                } else {
+                    // getting the width
+                    while ((return_value = fgetc(img_ptr)) != ' ') {
+                        img_width += return_value;   
+                    }
+
+                    // getting the height
+                    while ((return_value = fgetc(img_ptr)) != '\n') {
+                        img_height += return_value;
+                    }
+
+                    // getting max colour value
+                    while ((return_value = fgetc(img_ptr)) != '\n') {
+                        max_col_val += return_value;
+                    }
                 }
 
                 // setting the total bytes value
@@ -109,6 +152,7 @@ public:
                         tmp_pixel.set_blue_value(bv);
                     }
 
+                    // pushing the temporary pixel in the pixels vector
                     original_pixels.push_back(tmp_pixel);
                 }
             }
@@ -201,7 +245,7 @@ public:
         std::ofstream newimg{filename}; // creating new image file
 
         // appending the initial stuff for the ppm file
-        newimg << magic_number << "\n" << get_width()
+        newimg << magic_number << "\n" << random_info << "\n" << get_width()
             << " " << get_height() << "\n" << get_max_color() << "\n";
 
         for (int i = 0; i < get_num_pixels(); i++) {
@@ -226,5 +270,150 @@ public:
         }
     }
     
-    // implement a constructor that defines the mode as writing
+    // return a pixel given the row and the column
+    pixel get_pixel_values(std::size_t row_, std::size_t column_, img_type img_type_) {
+        if (img_ptr != nullptr) {
+            switch (img_type_) {
+                // getting pixel from original image
+                case (img_type::original):
+                    // we check if original vector is not empty
+                    if (original_pixels.size() > 0) {
+                        // then we check if we are inside the bounds
+                        // if we are not we just return an empty pixel
+                        if (row_ * std::stoi(get_width()) + column_ < get_num_pixels()) {
+                            return original_pixels[row_ * std::stoi(this->get_width()) + column_];
+                        } else {
+                            // we return an empty pixel
+                            return pixel();
+                        }
+                    }
+                    break;
+
+                // getting pixel from greyscale image
+                case (img_type::greyscale):
+                    // we check if original vector is not empty
+                    if (greyscale_pixels.size() > 0) {
+                        // then we check if we are inside the bounds
+                        // if we are not we just return an empty pixel
+                        if (row_ * std::stoi(get_width()) + column_ < get_num_pixels()) {
+                            return greyscale_pixels[row_ * std::stoi(this->get_width()) + column_];
+                        } else {
+                            // we return an empty pixel
+                            return pixel();
+                        }
+                    }
+                    break;
+
+                // getting pixel from blurred image
+                case (img_type::blurred):
+                    // we check if original vector is not empty
+                    if (blurred_pixels.size() > 0) {
+                        // then we check if we are inside the bounds
+                        // if we are not we just return an empty pixel
+                        if (row_ * std::stoi(get_width()) + column_ < get_num_pixels()) {
+                            return blurred_pixels[row_ * std::stoi(this->get_width()) + column_];
+                        } else {
+                            // we return an empty pixel
+                            return pixel();
+                        }
+                    }
+                    break;
+
+                // default case
+                default:
+                    return pixel();
+            }
+        } else {
+            return pixel();
+        }
+        return pixel();
+    }
+
+    // write a setter for the pixel values and use it when generating the greyscale image
+    void set_pixel_values(const std::size_t row_, const std::size_t column_, 
+            const int r_value, const int g_value, const int b_value, img_type img_type_) {
+        if (img_ptr != nullptr) {
+            // if we are inside the bounds it's okay
+            if ((row_ * std::stoi(get_width()) + column_) < get_num_pixels()) {
+                switch (img_type_) {
+                    // we operate directly on the original image
+                    case (img_type::original):
+                        original_pixels[row_ * std::stoi(get_width()) + column_].set_red_value(r_value);
+                        original_pixels[row_ * std::stoi(get_width()) + column_].set_green_value(g_value);
+                        original_pixels[row_ * std::stoi(get_width()) + column_].set_blue_value(b_value);
+                        break;
+                    // we operate on the greyscale image
+                    case (img_type::greyscale):
+                        greyscale_pixels[row_ * std::stoi(get_width()) + column_].set_red_value(r_value);
+                        greyscale_pixels[row_ * std::stoi(get_width()) + column_].set_green_value(g_value);
+                        greyscale_pixels[row_ * std::stoi(get_width()) + column_].set_blue_value(b_value);
+                        break;
+                
+                    // ge operate on the blurred image
+                    case (img_type::blurred):
+                        blurred_pixels[row_ * std::stoi(get_width()) + column_].set_red_value(r_value);
+                        blurred_pixels[row_ * std::stoi(get_width()) + column_].set_green_value(g_value);
+                        blurred_pixels[row_ * std::stoi(get_width()) + column_].set_blue_value(b_value);
+                        break;
+                }
+            } else {
+                return;
+            }
+        }
+    }
+
+    // function to generate a blurred version of the image
+    void gen_blr_image(std::string filename, int blr_value) {
+        std::ofstream newimg{filename, std::ios::binary}; // creating new image file
+
+        // appending the initial stuff from the original ppm file
+        newimg << magic_number << "\n" << random_info << "\n" << get_width()
+            << " " << get_height() << "\n" << get_max_color() << "\n";
+
+        #pragma omp parallel for
+        for (std::size_t i = 0; i < get_num_pixels(); i++) {
+            int act_i = i / std::stoi(get_width());
+            int act_j = i % std::stoi(get_width());
+
+            int avg_r_val = 0;
+            int avg_g_val = 0;
+            int avg_b_val = 0;
+
+            int count_ = 0;
+
+            // getting average value from surrounding pixels
+            for (std::size_t i_ = act_i - blr_value; i_ <= act_i + blr_value; i_++) {
+                for (std::size_t j_ = act_j - blr_value; j_ <= act_j + blr_value; j_++) {
+                    avg_r_val += get_pixel_values(i_, j_, img_type::original).get_red_value();
+                    avg_g_val += get_pixel_values(i_, j_, img_type::original).get_green_value();
+                    avg_b_val += get_pixel_values(i_, j_, img_type::original).get_blue_value();
+                    count_++;
+                }
+            }
+
+            // taking the average of the pixel values
+            if (count_ > 0) {
+               avg_r_val /= count_;
+                avg_g_val /= count_;
+                avg_b_val /= count_;
+            } else {
+                avg_r_val = 0;
+                avg_g_val = 0;
+                avg_b_val = 0;
+            }
+
+            // writing to blurred image
+            newimg << static_cast<char>(avg_r_val);
+            newimg << static_cast<char>(avg_g_val);
+            newimg << static_cast<char>(avg_b_val);
+
+            // pushing pixel into blurred vector
+            pixel tmp_pixel;
+            tmp_pixel.set_red_value(avg_r_val);
+            tmp_pixel.set_green_value(avg_g_val);
+            tmp_pixel.set_blue_value(avg_b_val);
+
+            blurred_pixels.push_back(tmp_pixel);
+        }
+    }
 };
