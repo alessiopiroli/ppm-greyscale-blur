@@ -6,7 +6,8 @@
 #include <iostream>
 #include <tuple>
 #include <fstream>
-// #include <omp.h>
+
+#include <omp.h>
 
 enum class img_type {
     original, 
@@ -248,6 +249,7 @@ public:
         newimg << magic_number << "\n" << random_info << "\n" << get_width()
             << " " << get_height() << "\n" << get_max_color() << "\n";
 
+        #pragma omp parallel
         for (int i = 0; i < get_num_pixels(); i++) {
             // generating the greyscale value for each pixel
             int avg_pixel_value = original_pixels.at(i).get_red_value();
@@ -349,7 +351,7 @@ public:
                         greyscale_pixels[row_ * std::stoi(get_width()) + column_].set_blue_value(b_value);
                         break;
                 
-                    // ge operate on the blurred image
+                    // we operate on the blurred image
                     case (img_type::blurred):
                         blurred_pixels[row_ * std::stoi(get_width()) + column_].set_red_value(r_value);
                         blurred_pixels[row_ * std::stoi(get_width()) + column_].set_green_value(g_value);
@@ -413,6 +415,7 @@ public:
             tmp_pixel.set_green_value(avg_g_val);
             tmp_pixel.set_blue_value(avg_b_val);
 
+            // pushing pixel into blurred vector
             blurred_pixels.push_back(tmp_pixel);
         }
     }
