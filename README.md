@@ -7,7 +7,8 @@ A PPM file typically starts with a header:
 - A magic number: P3 (ASCII) or P6 (binary)
 - The image width and height
 - The maximum color value
-After the header the pixel values are stored as binary RGB triplets
+After the header the pixel values are stored as binary RGB triplets.
+
 For more details: [PPM Image Format](https://www.cs.swarthmore.edu/~soni/cs35/f13/Labs/extras/01/ppm_info.html)
 
 ## Building
