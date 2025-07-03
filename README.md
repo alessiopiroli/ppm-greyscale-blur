@@ -30,3 +30,8 @@ and the right image is the greyscale version.
 | ![orig1](png_sample_images/car_1.png) | ![blur1](png_sample_images/car_1_blr.png) | ![grey1](png_sample_images/car_1_gs.png) |
 | ![orig2](png_sample_images/post_1.png) | ![blur2](png_sample_images/post_1_blr.png) | ![grey2](png_sample_images/post_1_gs.png) |
 | ![orig3](png_sample_images/borabora_1.png) | ![blur3](png_sample_images/borabora_1_blr.png) | ![grey3](png_sample_images/borabora_1_gs.png) |
+
+## Image Credits
+The sample images used in this project were obtained from the [Cornell CS664 course materials](https://www.cs.cornell.edu/courses/cs664/2003fa/images/).  
+They are used here for educational purposes only. All rights remain with their original owners.  
+If there are any concerns regarding usage, please feel free to contact me.
